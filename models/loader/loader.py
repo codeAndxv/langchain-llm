@@ -31,7 +31,7 @@ class LoaderCheckPoint:
         self.tokenizer = None
         self.params = params or {}
 
-    def _load_model(self, model_name):
+    def load_model(self, model_name):
         """
         加载自定义位置的model
         :param model_name:
@@ -39,27 +39,18 @@ class LoaderCheckPoint:
         """
         print(f"Loading {model_name}...")
         t0 = time.time()
-
-        if self.model_path:
-            checkpoint = Path(f'{self.model_path}')
-
-        if 'chatglm' in model_name.lower() or 'chatglm2' in model_name.lower():
-            LoaderClass = AutoModel
-        else:
-            LoaderClass = AutoModelForCausalLM
-
         # Load the model in simple 16-bit mode by default
         # 如果加载没问题，但在推理时报错RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`
         # 那还是因为显存不够，此时只能考虑--load-in-8bit,或者配置默认模型为`chatglm-6b-int8`
-
         print(
             "Warning: self.llm_device is False.\nThis means that no use GPU  bring to be load CPU mode\n")
-        params = {"torch_dtype": torch.float32, "trust_remote_code": True}
-        model = LoaderClass.from_pretrained(checkpoint, **params).to(self.llm_device, dtype=float)
-        tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+        model = AutoModel.from_pretrained(self.model_path, trust_remote_code=True, revision="v1.0").float()
 
         print(f"Loaded the model in {(time.time() - t0):.2f} seconds.")
-        return model, tokenizer
+        model.eval()
+        self.model = model
+        self.tokenizer = tokenizer
 
     def clear_torch_cache(self):
         gc.collect()
@@ -89,4 +80,4 @@ class LoaderCheckPoint:
 
     def reload_model(self):
         self.unload_model()
-        self.model, self.tokenizer = self._load_model(self.model_name)
+        self.model, self.tokenizer = self.load_model(self.model_name)

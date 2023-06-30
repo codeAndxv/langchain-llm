@@ -214,17 +214,18 @@ class LocalDocQA:
             return None, [one_title]
 
     def get_knowledge_based_answer(self, query, vs_path, chat_history=[], streaming: bool = STREAMING):
-        vector_store = load_vector_store(vs_path, self.embeddings)
-        vector_store.chunk_size = self.chunk_size
-        vector_store.chunk_conent = self.chunk_conent
-        vector_store.score_threshold = self.score_threshold
-        related_docs_with_score = vector_store.similarity_search_with_score(query, k=self.top_k)
-        torch_gc()
-        if len(related_docs_with_score) > 0:
-            prompt = generate_prompt(related_docs_with_score, query)
-        else:
-            prompt = query
-
+        # vector_store = load_vector_store(vs_path, self.embeddings)
+        # vector_store.chunk_size = self.chunk_size
+        # vector_store.chunk_conent = self.chunk_conent
+        # vector_store.score_threshold = self.score_threshold
+        # related_docs_with_score = vector_store.similarity_search_with_score(query, k=self.top_k)
+        # related_docs_str = [doc[0].page_content for doc in related_docs_with_score]
+        # torch_gc()
+        # if len(related_docs_str) > 0:
+        #     prompt = generate_prompt(related_docs_str, query)
+        # else:
+        prompt = query
+        related_docs_str = ""
         for answer_result in self.llm.generatorAnswer(prompt=prompt, history=chat_history,
                                                       streaming=streaming):
             resp = answer_result.llm_output["answer"]
@@ -232,7 +233,7 @@ class LocalDocQA:
             history[-1][0] = query
             response = {"query": query,
                         "result": resp,
-                        "source_documents": related_docs_with_score}
+                        "source_documents": related_docs_str}
             yield response, history
 
     # query      查询内容

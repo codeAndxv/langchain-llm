@@ -16,7 +16,7 @@ def loaderLLM(llm_model: str) -> Any:
     loaderCheckPoint.model_path = llm_model_info["local_model_path"]
 
     if 'FastChatOpenAILLM' not in llm_model_info["provides"]:
-        loaderCheckPoint.reload_model()
+        loaderCheckPoint.load_model(llm_model)
 
     provides_class = getattr(sys.modules['models'], llm_model_info['provides'])
     modelInsLLM = provides_class(checkPoint=loaderCheckPoint)

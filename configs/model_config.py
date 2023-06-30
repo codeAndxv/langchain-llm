@@ -15,7 +15,7 @@ embedding_model_dict = {
     "ernie-tiny": "nghuyong/ernie-3.0-nano-zh",
     "ernie-base": "nghuyong/ernie-3.0-base-zh",
     "text2vec-base": "shibing624/text2vec-base-chinese",
-    "text2vec": "D:\\file\\project\\text2vec-large-chinese",
+    "text2vec": "D:\\text2vec-large-chinese",
     "m3e-small": "moka-ai/m3e-small",
     "m3e-base": "moka-ai/m3e-base",
 }
@@ -42,7 +42,7 @@ llm_model_dict = {
     "chatglm2-6b": {
         "name": "chatglm2-6b",
         "pretrained_model_name": "THUDM/chatglm2-6b",
-        "local_model_path": "D:\\file\\project\\chatglm2-6b",
+        "local_model_path": "D:\\ChatGLM2-6B\\chatglm2-6b",
         "provides": "ChatGLM"
     },
     # 通过 fastchat 调用的模型请参考如下格式

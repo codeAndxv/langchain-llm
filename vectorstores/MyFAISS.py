@@ -1,7 +1,7 @@
 from langchain.vectorstores import FAISS
 from langchain.vectorstores.base import VectorStore
 from langchain.vectorstores.faiss import dependable_faiss_import
-from typing import Any, Callable, List, Dict
+from typing import Any, Callable, List, Dict, Tuple, Optional
 from langchain.docstore.base import Docstore
 from langchain.docstore.document import Document
 import numpy as np
@@ -41,9 +41,15 @@ class MyFAISS(FAISS, VectorStore):
         lists.append(ls1)
         return lists
 
+
     def similarity_search_with_score_by_vector(
-            self, embedding: List[float], k: int = 4
-    ) -> List[Document]:
+            self,
+            embedding: List[float],
+            k: int = 4,
+            filter: Optional[Dict[str, Any]] = None,
+            fetch_k: int = 20,
+            **kwargs: Any,
+    ) -> List[Tuple[Document, float]]:
         faiss = dependable_faiss_import()
         vector = np.array([embedding], dtype=np.float32)
         if self._normalize_L2:
@@ -68,7 +74,7 @@ class MyFAISS(FAISS, VectorStore):
                 if not isinstance(doc, Document):
                     raise ValueError(f"Could not find document for id {_id}, got {doc}")
                 doc.metadata["score"] = int(scores[0][j])
-                docs.append(doc)
+                docs.append((doc, int(scores[0][j])))
                 continue
 
             id_set.add(i)
@@ -115,7 +121,7 @@ class MyFAISS(FAISS, VectorStore):
                 raise ValueError(f"Could not find document for id {_id}, got {doc}")
             doc_score = min([scores[0][id] for id in [indices[0].tolist().index(i) for i in id_seq if i in indices[0]]])
             doc.metadata["score"] = int(doc_score)
-            docs.append(doc)
+            docs.append((doc, int(doc_score)))
         return docs
 
     def delete_doc(self, source: str or List[str]):

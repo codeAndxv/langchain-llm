@@ -15,7 +15,7 @@ embedding_model_dict = {
     "ernie-tiny": "nghuyong/ernie-3.0-nano-zh",
     "ernie-base": "nghuyong/ernie-3.0-base-zh",
     "text2vec-base": "shibing624/text2vec-base-chinese",
-    "text2vec": "GanymedeNil/text2vec-large-chinese",
+    "text2vec": "D:\\file\\project\\text2vec-large-chinese",
     "m3e-small": "moka-ai/m3e-small",
     "m3e-base": "moka-ai/m3e-base",
 }
@@ -33,6 +33,18 @@ EMBEDDING_DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backe
 # 如将 "chatglm-6b" 的 "local_model_path" 由 None 修改为 "User/Downloads/chatglm-6b"
 # 此处请写绝对路径
 llm_model_dict = {
+    "chatglm-6b": {
+        "name": "chatglm-6b",
+        "pretrained_model_name": "THUDM/chatglm-6b",
+        "local_model_path": None,
+        "provides": "ChatGLM"
+    },
+    "chatglm2-6b": {
+        "name": "chatglm2-6b",
+        "pretrained_model_name": "THUDM/chatglm2-6b",
+        "local_model_path": "D:\\file\\project\\chatglm2-6b",
+        "provides": "ChatGLM"
+    },
     # 通过 fastchat 调用的模型请参考如下格式
     "fastchat-chatglm-6b": {
         "name": "chatglm-6b",  # "name"修改为fastchat服务中的"model_name"
@@ -46,16 +58,12 @@ llm_model_dict = {
         "pretrained_model_name": "chatglm2-6b",
         "local_model_path": None,
         "provides": "FastChatOpenAILLM",  # 使用fastchat api时，需保证"provides"为"FastChatOpenAILLM"
-        "api_base_url": "http://localhost:8000/v1"  # "name"修改为fastchat服务中的"api_base_url"
+        "api_base_url": "http://58.33.45.74:7860/v1"  # "name"修改为fastchat服务中的"api_base_url"
     },
 }
 
 # LLM 名称
-LLM_MODEL = "fastchat-chatglm2-6b"
-
-# LLM lora path，默认为空，如果有请直接指定文件夹路径
-LLM_LORA_PATH = ""
-USE_LORA = True if LLM_LORA_PATH else False
+LLM_MODEL = "chatglm2-6b"
 
 # LLM streaming reponse
 STREAMING = True
@@ -88,7 +96,7 @@ LLM_HISTORY_LEN = 3
 VECTOR_SEARCH_TOP_K = 5
 
 # 知识检索内容相关度 Score, 数值范围约为0-1100，如果为0，则不生效，经测试设置为小于500时，匹配结果更精准
-VECTOR_SEARCH_SCORE_THRESHOLD = 0
+VECTOR_SEARCH_SCORE_THRESHOLD = 400
 
 NLTK_DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nltk_data")
 

@@ -1,12 +1,11 @@
 import gc
-import json
-import os
-import re
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple, Union
+import torch
+import transformers
+from transformers import (AutoConfig, AutoModel, AutoModelForCausalLM,
+                          AutoTokenizer, LlamaTokenizer)
 from configs.model_config import LLM_DEVICE
-
 
 class LoaderCheckPoint:
     """
@@ -16,16 +15,13 @@ class LoaderCheckPoint:
     model_name: str = None
     tokenizer: object = None
     # 模型全路径
+    model_path: str = None
     model: object = None
     model_config: object = None
-    lora_names: set = []
-    lora_dir: str = None
-    ptuning_dir: str = None
-    use_ptuning_v2: bool = False
 
-    is_llamacpp: bool = False
     params: object = None
-
+    # 默认 cuda ，如果不支持cuda使用多卡， 如果不支持多卡 使用cpu
+    llm_device = LLM_DEVICE
     def __init__(self, params: dict = None):
         """
         模型初始化
@@ -34,5 +30,63 @@ class LoaderCheckPoint:
         self.model = None
         self.tokenizer = None
         self.params = params or {}
-        self.no_remote_model = params.get('no_remote_model', False)
 
+    def _load_model(self, model_name):
+        """
+        加载自定义位置的model
+        :param model_name:
+        :return:
+        """
+        print(f"Loading {model_name}...")
+        t0 = time.time()
+
+        if self.model_path:
+            checkpoint = Path(f'{self.model_path}')
+
+        if 'chatglm' in model_name.lower() or 'chatglm2' in model_name.lower():
+            LoaderClass = AutoModel
+        else:
+            LoaderClass = AutoModelForCausalLM
+
+        # Load the model in simple 16-bit mode by default
+        # 如果加载没问题，但在推理时报错RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`
+        # 那还是因为显存不够，此时只能考虑--load-in-8bit,或者配置默认模型为`chatglm-6b-int8`
+
+        print(
+            "Warning: self.llm_device is False.\nThis means that no use GPU  bring to be load CPU mode\n")
+        params = {"torch_dtype": torch.float32, "trust_remote_code": True}
+        model = LoaderClass.from_pretrained(checkpoint, **params).to(self.llm_device, dtype=float)
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
+
+        print(f"Loaded the model in {(time.time() - t0):.2f} seconds.")
+        return model, tokenizer
+
+    def clear_torch_cache(self):
+        gc.collect()
+        if self.llm_device.lower() != "cpu":
+            if torch.has_mps:
+                try:
+                    from torch.mps import empty_cache
+                    empty_cache()
+                except Exception as e:
+                    print(e)
+                    print(
+                        "如果您使用的是 macOS 建议将 pytorch 版本升级至 2.0.0 或更高版本，以支持及时清理 torch 产生的内存占用。")
+            elif torch.has_cuda:
+                device_id = "0" if torch.cuda.is_available() else None
+                CUDA_DEVICE = f"{self.llm_device}:{device_id}" if device_id else self.llm_device
+                with torch.cuda.device(CUDA_DEVICE):
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+            else:
+                print("未检测到 cuda 或 mps，暂不支持清理显存")
+
+    def unload_model(self):
+        del self.model
+        del self.tokenizer
+        self.model = self.tokenizer = None
+        self.clear_torch_cache()
+
+    def reload_model(self):
+        self.unload_model()
+        self.model, self.tokenizer = self._load_model(self.model_name)

@@ -1,5 +1,3 @@
-from .image_loader import UnstructuredPaddleImageLoader
-from .pdf_loader import UnstructuredPaddlePDFLoader
 from .dialogue import (
     Person,
     Dialogue,
@@ -8,7 +6,5 @@ from .dialogue import (
 )
 
 __all__ = [
-    "UnstructuredPaddleImageLoader",
-    "UnstructuredPaddlePDFLoader",
     "DialogueLoader",
 ]

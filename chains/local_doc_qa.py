@@ -8,7 +8,6 @@ from typing import List
 from utils import torch_gc
 from tqdm import tqdm
 from pypinyin import lazy_pinyin
-from loader import UnstructuredPaddleImageLoader, UnstructuredPaddlePDFLoader
 from models.base import (BaseAnswer,
                          AnswerResult)
 from models.loader.args import parser
@@ -64,14 +63,6 @@ def load_file(filepath, sentence_size=SENTENCE_SIZE, using_zh_title_enhance=ZH_T
         loader = TextLoader(filepath, autodetect_encoding=True)
         textsplitter = ChineseTextSplitter(pdf=False, sentence_size=sentence_size)
         docs = loader.load_and_split(textsplitter)
-    elif filepath.lower().endswith(".pdf"):
-        loader = UnstructuredPaddlePDFLoader(filepath)
-        textsplitter = ChineseTextSplitter(pdf=True, sentence_size=sentence_size)
-        docs = loader.load_and_split(textsplitter)
-    elif filepath.lower().endswith(".jpg") or filepath.lower().endswith(".png"):
-        loader = UnstructuredPaddleImageLoader(filepath, mode="elements")
-        textsplitter = ChineseTextSplitter(pdf=False, sentence_size=sentence_size)
-        docs = loader.load_and_split(text_splitter=textsplitter)
     elif filepath.lower().endswith(".csv"):
         loader = CSVLoader(filepath)
         docs = loader.load()

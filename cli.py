@@ -2,9 +2,7 @@ from configs.model_config import *
 from chains.local_doc_qa import LocalDocQA
 import os
 import nltk
-from models.loader.args import parser
 import models.shared as shared
-from models.loader import LoaderCheckPoint
 nltk.data.path = [NLTK_DATA_PATH] + nltk.data.path
 
 # Show reply with source text from input document
@@ -12,22 +10,18 @@ REPLY_WITH_SOURCE = True
 
 
 def main():
-
-    llm_model_ins = shared.loaderLLM()
-    llm_model_ins.history_len = LLM_HISTORY_LEN
-
     local_doc_qa = LocalDocQA()
-    local_doc_qa.init_cfg(llm_model=llm_model_ins,
-                          embedding_model=EMBEDDING_MODEL,
+    local_doc_qa.init_cfg(embedding_model=EMBEDDING_MODEL,
                           embedding_device=EMBEDDING_DEVICE,
                           top_k=VECTOR_SEARCH_TOP_K)
-    vs_path = None
-    while not vs_path:
-        filepath = input("Input your local knowledge file path 请输入本地知识文件路径：")
-        # 判断 filepath 是否为空，如果为空的话，重新让用户输入,防止用户误触回车
-        if not filepath:
-            continue
-        vs_path, _ = local_doc_qa.init_knowledge_vector_store(filepath)
+    filepath = "D:\\file\\project\\qa"
+    vs_path, _ = local_doc_qa.init_knowledge_vector_store(filepath)
+
+    llm_model_ins = shared.loaderLLM(LLM_MODEL)
+    llm_model_ins.history_len = LLM_HISTORY_LEN
+
+    local_doc_qa.llm = llm_model_ins
+
     history = []
     while True:
         query = input("Input your question 请输入问题：")
@@ -50,8 +44,4 @@ def main():
 
 
 if __name__ == "__main__":
-    args = None
-    args = parser.parse_args()
-    args_dict = vars(args)
-    shared.loaderCheckPoint = LoaderCheckPoint(args_dict)
     main()

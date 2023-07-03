@@ -23,7 +23,7 @@ def main():
     local_doc_qa.llm = llm_model_ins
 
     history = []
-    query = "你是谁"
+    query = "你好"
     last_print_len = 0
     for resp, history in local_doc_qa.get_knowledge_based_answer(query=query,
                                                                  vs_path=vs_path,

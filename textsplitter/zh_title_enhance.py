@@ -1,5 +1,6 @@
 from langchain.docstore.document import Document
 import re
+from typing import List
 
 
 def under_non_alpha_ratio(text: str, threshold: float = 0.5):
@@ -85,7 +86,7 @@ def is_possible_title(
     return True
 
 
-def zh_title_enhance(docs: Document) -> Document:
+def zh_title_enhance(docs: List[Document]) -> Document:
     title = None
     if len(docs) > 0:
         for doc in docs:

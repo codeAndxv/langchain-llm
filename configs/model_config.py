@@ -119,3 +119,5 @@ OPEN_CROSS_DOMAIN = False
 # 通过增加标题判断，判断哪些文本为标题，并在metadata中进行标记；
 # 然后将文本与往上一级的标题进行拼合，实现文本信息的增强。
 ZH_TITLE_ENHANCE = False
+
+WRITE_CHECK = False

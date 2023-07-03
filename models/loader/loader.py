@@ -1,11 +1,9 @@
 import gc
 import time
-from pathlib import Path
 import torch
-import transformers
 from transformers import (AutoConfig, AutoModel, AutoModelForCausalLM,
                           AutoTokenizer, LlamaTokenizer)
-from configs.model_config import LLM_DEVICE
+from configs.model_config import *
 
 class LoaderCheckPoint:
     """
@@ -37,20 +35,21 @@ class LoaderCheckPoint:
         :param model_name:
         :return:
         """
-        print(f"Loading {model_name}...")
+        print(f"Loading {model_name} by {self.llm_device}...")
         t0 = time.time()
         # Load the model in simple 16-bit mode by default
         # 如果加载没问题，但在推理时报错RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`
         # 那还是因为显存不够，此时只能考虑--load-in-8bit,或者配置默认模型为`chatglm-6b-int8`
-        print(
-            "Warning: self.llm_device is False.\nThis means that no use GPU  bring to be load CPU mode\n")
-        tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
-        model = AutoModel.from_pretrained(self.model_path, trust_remote_code=True, revision="v1.0").float()
+        if "chatglm" in model_name.lower():
+            if self.llm_device.lower() == "cpu":
+                print("Warning: self.llm_device is False.\nThis means that no use GPU  bring to be load CPU mode\n")
+                tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+                model = AutoModel.from_pretrained(self.model_path, trust_remote_code=True, revision="v1.0").float()
 
-        print(f"Loaded the model in {(time.time() - t0):.2f} seconds.")
-        model.eval()
-        self.model = model
-        self.tokenizer = tokenizer
+                print(f"Loaded the model in {(time.time() - t0):.2f} seconds.")
+                model.eval()
+                self.model = model
+                self.tokenizer = tokenizer
 
     def clear_torch_cache(self):
         gc.collect()

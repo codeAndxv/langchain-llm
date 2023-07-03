@@ -56,23 +56,18 @@ def tree(filepath, ignore_dir_names=None, ignore_file_names=None):
 
 
 def load_file(filepath, sentence_size=SENTENCE_SIZE, using_zh_title_enhance=ZH_TITLE_ENHANCE):
-    if filepath.lower().endswith(".md"):
-        loader = UnstructuredFileLoader(filepath, mode="elements")
-        docs = loader.load()
-    elif filepath.lower().endswith(".txt"):
+    if filepath.lower().endswith(".txt"):
         loader = TextLoader(filepath, autodetect_encoding=True)
         textsplitter = ChineseTextSplitter(pdf=False, sentence_size=sentence_size)
         docs = loader.load_and_split(textsplitter)
-    elif filepath.lower().endswith(".csv"):
-        loader = CSVLoader(filepath)
-        docs = loader.load()
     else:
         loader = UnstructuredFileLoader(filepath, mode="elements")
         textsplitter = ChineseTextSplitter(pdf=False, sentence_size=sentence_size)
         docs = loader.load_and_split(text_splitter=textsplitter)
     if using_zh_title_enhance:
         docs = zh_title_enhance(docs)
-    write_check_file(filepath, docs)
+    if WRITE_CHECK:
+        write_check_file(filepath, docs)
     return docs
 
 
@@ -133,6 +128,7 @@ class LocalDocQA:
                                     sentence_size=SENTENCE_SIZE):
         loaded_files = []
         failed_files = []
+        docs = []
         if isinstance(filepath, str):
             if not os.path.exists(filepath):
                 print("路径不存在")
@@ -163,7 +159,6 @@ class LocalDocQA:
                         logger.info(f"{file}\n")
 
         else:
-            docs = []
             for file in filepath:
                 try:
                     docs += load_file(file)

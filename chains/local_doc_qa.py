@@ -152,21 +152,13 @@ class LocalDocQA:
                     except Exception as e:
                         logger.error(e)
                         failed_files.append(file)
-
                 if len(failed_files) > 0:
                     logger.info("以下文件未能成功加载：")
                     for file in failed_files:
                         logger.info(f"{file}\n")
 
         else:
-            for file in filepath:
-                try:
-                    docs += load_file(file)
-                    logger.info(f"{file} 已成功加载")
-                    loaded_files.append(file)
-                except Exception as e:
-                    logger.error(e)
-                    logger.info(f"{file} 未能成功加载")
+            logger.error("请正确配置qa路径")
         if len(docs) > 0:
             logger.info("文件加载完毕，正在生成向量库")
             if vs_path and os.path.isdir(vs_path) and "index.faiss" in os.listdir(vs_path):

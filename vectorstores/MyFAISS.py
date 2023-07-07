@@ -33,7 +33,7 @@ class MyFAISS(FAISS, VectorStore):
         ls1 = [ls[0]]
         o_source = self.docstore.search(self.index_to_docstore_id[ls[0]]).metadata["source"]
         for i in range(1, len(ls)):
-            if ls[i - 1] + 1 == ls[i] and o_source == self.docstore.search(self.index_to_docstore_id[i]):
+            if ls[i - 1] + 1 == ls[i] and o_source == self.docstore.search(self.index_to_docstore_id[i]).metadata["source"]:
                 ls1.append(ls[i])
             else:
                 o_source = self.docstore.search(self.index_to_docstore_id[ls[i]]).metadata["source"]
@@ -91,8 +91,7 @@ class MyFAISS(FAISS, VectorStore):
                     if next_expend_i not in id_set and next_expend_i in self.index_to_docstore_id:
                         _id0 = self.index_to_docstore_id[next_expend_i]
                         doc0 = self.docstore.search(_id0)
-                        if doc_len + len(doc0.page_content) > self.chunk_size or doc0.metadata["source"] != \
-                                doc.metadata["source"]:
+                        if doc_len + len(doc0.page_content) > self.chunk_size or doc0.metadata["source"] != doc.metadata["source"]:
                             break
                         else:
                             doc_len += len(doc0.page_content)
@@ -111,9 +110,11 @@ class MyFAISS(FAISS, VectorStore):
                     doc0 = self.docstore.search(_id0)
                     tem_doc.page_content += " " + doc0.page_content
             if tem_doc:
-                doc_score = min([scores[0][id] for id in [indices[0].tolist().index(i) for i in id_seq if i in indices[0]]])
-                tem_doc.metadata["score"] = int(doc_score)
-                docs.append((tem_doc, int(doc_score)))
+                tem_scores = [scores[0][id] for id in [indices[0].tolist().index(i) for i in id_seq if i in indices[0]]]
+                if tem_scores:
+                    doc_score = min(tem_scores)
+                    tem_doc.metadata["score"] = int(doc_score)
+                    docs.append((tem_doc, int(doc_score)))
         return docs
 
     def delete_doc(self, source: str or List[str]):

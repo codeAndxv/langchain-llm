@@ -23,7 +23,7 @@ def main():
     local_doc_qa.llm = llm_model_ins
 
     history = []
-    query = "你好"
+    query = "模型量化"
     for resp, history in local_doc_qa.get_knowledge_based_answer(query=query,
                                                                  vs_path=vs_path,
                                                                  chat_history=history,

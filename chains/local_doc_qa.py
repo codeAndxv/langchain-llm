@@ -7,7 +7,6 @@ from textsplitter import ChineseTextSplitter
 from typing import List
 from utils import torch_gc
 from tqdm import tqdm
-from pypinyin import lazy_pinyin
 from models.base import (BaseAnswer,
                          AnswerResult)
 from models.loader.args import parser
@@ -168,7 +167,7 @@ class LocalDocQA:
             else:
                 if not vs_path:
                     vs_path = os.path.join(KB_ROOT_PATH,
-                                           f"""{"".join(lazy_pinyin(os.path.splitext(file)[0]))}_FAISS_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}""",
+                                           f"""FAISS_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}""",
                                            "vector_store")
                 vector_store = MyFAISS.from_documents(docs, self.embeddings)  # docs 为Document列表
                 torch_gc()

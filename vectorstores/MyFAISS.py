@@ -29,13 +29,14 @@ class MyFAISS(FAISS, VectorStore):
         self.chunk_conent = False
 
     def seperate_list(self, ls: List[int]) -> List[List[int]]:
-        # TODO: 增加是否属于同一文档的判断
         lists = []
         ls1 = [ls[0]]
+        o_source = self.docstore.search(self.index_to_docstore_id[ls[0]]).metadata["source"]
         for i in range(1, len(ls)):
-            if ls[i - 1] + 1 == ls[i]:
+            if ls[i - 1] + 1 == ls[i] and o_source == self.docstore.search(self.index_to_docstore_id[i]):
                 ls1.append(ls[i])
             else:
+                o_source = self.docstore.search(self.index_to_docstore_id[ls[i]]).metadata["source"]
                 lists.append(ls1)
                 ls1 = [ls[i]]
         lists.append(ls1)
@@ -54,20 +55,15 @@ class MyFAISS(FAISS, VectorStore):
         vector = np.array([embedding], dtype=np.float32)
         if self._normalize_L2:
             faiss.normalize_L2(vector)
-        scores, indices = self.index.search(vector, k)
+        scores, indices = self.index.search(vector, k if filter is None else fetch_k)
         docs = []
         id_set = set()
         store_len = len(self.index_to_docstore_id)
-        rearrange_id_list = False
         for j, i in enumerate(indices[0]):
             if i == -1 or 0 < self.score_threshold < scores[0][j]:
                 # This happens when not enough docs are returned.
                 continue
-            if i in self.index_to_docstore_id:
-                _id = self.index_to_docstore_id[i]
-            # 执行接下来的操作
-            else:
-                continue
+            _id = self.index_to_docstore_id[i]
             doc = self.docstore.search(_id)
             if (not self.chunk_conent) or ("context_expand" in doc.metadata and not doc.metadata["context_expand"]):
                 # 匹配出的文本如果不需要扩展上下文则执行如下代码
@@ -76,52 +72,48 @@ class MyFAISS(FAISS, VectorStore):
                 doc.metadata["score"] = int(scores[0][j])
                 docs.append((doc, int(scores[0][j])))
                 continue
-
-            id_set.add(i)
-            docs_len = len(doc.page_content)
-            for k in range(1, max(i, store_len - i)):
-                break_flag = False
-                if "context_expand_method" in doc.metadata and doc.metadata["context_expand_method"] == "forward":
-                    expand_range = [i + k]
-                elif "context_expand_method" in doc.metadata and doc.metadata["context_expand_method"] == "backward":
-                    expand_range = [i - k]
-                else:
-                    expand_range = [i + k, i - k]
-                for l in expand_range:
-                    if l not in id_set and 0 <= l < len(self.index_to_docstore_id):
-                        _id0 = self.index_to_docstore_id[l]
-                        doc0 = self.docstore.search(_id0)
-                        if docs_len + len(doc0.page_content) > self.chunk_size or doc0.metadata["source"] != \
-                                doc.metadata["source"]:
-                            break_flag = True
+            else:
+                id_set.add(i)
+                doc_len = len(doc.page_content)
+                keys = list(self.index_to_docstore_id.keys())
+                def generate_index(doc_index, s_len):
+                    n = 1
+                    while True:
+                        if doc_index + n < s_len:
+                            yield doc_index + n
+                        if doc_index - n >= 0:
+                            yield doc_index - n
+                        if doc_index + n >= s_len and doc_index - n < 0:
                             break
-                        elif doc0.metadata["source"] == doc.metadata["source"]:
-                            docs_len += len(doc0.page_content)
-                            id_set.add(l)
-                            rearrange_id_list = True
-                if break_flag:
-                    break
-        if (not self.chunk_conent) or (not rearrange_id_list):
+                        n += 1
+                for next_expend_i in generate_index(keys.index(i), store_len):
+                    next_expend_i = keys[next_expend_i]
+                    if next_expend_i not in id_set and next_expend_i in self.index_to_docstore_id:
+                        _id0 = self.index_to_docstore_id[next_expend_i]
+                        doc0 = self.docstore.search(_id0)
+                        if doc_len + len(doc0.page_content) > self.chunk_size or doc0.metadata["source"] != \
+                                doc.metadata["source"]:
+                            break
+                        else:
+                            doc_len += len(doc0.page_content)
+                            id_set.add(next_expend_i)
+        if not id_set:      # 说明不需要扩展上下文
             return docs
-        if len(id_set) == 0 and self.score_threshold > 0:
-            return []
         id_list = sorted(list(id_set))
         id_lists = self.seperate_list(id_list)
         for id_seq in id_lists:
             for id in id_seq:
                 if id == id_seq[0]:
                     _id = self.index_to_docstore_id[id]
-                    # doc = self.docstore.search(_id)
-                    doc = copy.deepcopy(self.docstore.search(_id))
+                    tem_doc = copy.deepcopy(self.docstore.search(_id))
                 else:
                     _id0 = self.index_to_docstore_id[id]
                     doc0 = self.docstore.search(_id0)
-                    doc.page_content += " " + doc0.page_content
-            if not isinstance(doc, Document):
-                raise ValueError(f"Could not find document for id {_id}, got {doc}")
-            doc_score = min([scores[0][id] for id in [indices[0].tolist().index(i) for i in id_seq if i in indices[0]]])
-            doc.metadata["score"] = int(doc_score)
-            docs.append((doc, int(doc_score)))
+                    tem_doc.page_content += " " + doc0.page_content
+            if tem_doc:
+                doc_score = min([scores[0][id] for id in [indices[0].tolist().index(i) for i in id_seq if i in indices[0]]])
+                tem_doc.metadata["score"] = int(doc_score)
+                docs.append((tem_doc, int(doc_score)))
         return docs
 
     def delete_doc(self, source: str or List[str]):

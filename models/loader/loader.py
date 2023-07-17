@@ -50,6 +50,13 @@ class LoaderCheckPoint:
                 model.eval()
                 self.model = model
                 self.tokenizer = tokenizer
+            elif self.llm_device.lower() == "gpu":
+                print("Try load llm try gpu \n")
+                tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+                model = AutoModel.from_pretrained(self.model_path, trust_remote_code=True).cuda()
+                model.eval()
+                self.model = model
+                self.tokenizer = tokenizer
 
     def clear_torch_cache(self):
         gc.collect()
